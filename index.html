@@ -1,8 +1,590 @@
 <!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"><title>My Personal Homepage</title></head>
-<body>
-  <h1>Hello, I am Tom</h1>
-  <p>This is my GitHub Pages personal website.</p>
+<html lang="zh-CN" class="dark" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Tom 的个人主页 — 代码编辑器风格的数字工作区">
+  <meta name="theme-color" content="#0b0b0f">
+  <title>Tom · about.me</title>
+  <style id="theme-vars">
+/* Code-style personal portfolio theme */
+
+:root {
+  /* Page & surface */
+  --brand-background: #0b0b0f;
+  --brand-foreground: #e6edf3;
+  --brand-card: #161b22;
+  --brand-card-foreground: #e6edf3;
+  --brand-popover: #161b22;
+  --brand-popover-foreground: #e6edf3;
+
+  /* Single brand hue: terminal green */
+  --brand-primary: #3fb950;
+  --brand-primary-foreground: #0b0b0f;
+
+  --brand-muted: #21262d;
+  --brand-muted-foreground: #8b949e;
+  --brand-border: #30363d;
+  --brand-input: #21262d;
+  --brand-ring: #3fb950;
+
+  --brand-radius-sm: 4px;
+  --brand-radius-md: 8px;
+  --brand-radius-lg: 16px;
+
+  /* Code syntax accents (support hues, not brand hues) */
+  --code-keyword: #ff7b72;
+  --code-string: #a5d6ff;
+  --code-comment: #6e7681;
+  --code-function: #d2a8ff;
+  --code-number: #79c0ff;
+  --code-tag: #7ee787;
+
+  /* State colors */
+  --state-success: #3fb950;
+  --state-warning: #d29922;
+  --state-error: #f85149;
+  --state-info: #58a6ff;
+
+  /* Spacing (8pt grid) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 80px;
+  --s-9: 120px;
+
+  /* Typography */
+  --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", "Cascadia Code", Consolas, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", monospace;
+  --font-sans: Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+
+  /* Shadows */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.05), 0 1px 1px rgba(0, 0, 0, 0.03);
+  --shadow-2: 0 8px 24px -8px rgba(0, 0, 0, 0.08);
+  --shadow-drawer: 8px 0 32px -8px rgba(0, 0, 0, 0.6);
+
+  /* Sidebar width */
+  --sidebar-w: 240px;
+}
+
+body {
+  font-family: var(--font-mono);
+  background-color: var(--brand-background);
+  color: var(--brand-foreground);
+}
+
+/* Prevent iOS rubber-band scroll on the page shell */
+html { overflow: hidden; height: 100%; }
+body { overscroll-behavior: none; overflow: hidden; margin: 0; }
+body { position: fixed; inset: 0; }
+
+/* Boot overlay */
+#boot-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: var(--brand-background);
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 14px;
+  transition: opacity .45s ease, visibility .45s ease;
+}
+#boot-overlay.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+.boot-logo {
+  width: 44px; height: 44px; border-radius: 10px;
+  border: 2px solid var(--brand-primary);
+  display: grid; place-items: center;
+  color: var(--brand-primary);
+  font-family: var(--font-mono); font-weight: 700; font-size: 18px;
+  animation: bootPulse 1.2s ease-in-out infinite;
+}
+@keyframes bootPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(63, 185, 80, 0.35); }
+  50% { box-shadow: 0 0 0 8px rgba(63, 185, 80, 0); }
+}
+.boot-text { color: var(--brand-muted-foreground); font-size: 12px; letter-spacing: .08em; }
+.boot-bar { width: 180px; height: 2px; background: var(--brand-muted); border-radius: 2px; overflow: hidden; }
+.boot-bar::after { content: ""; display: block; height: 100%; width: 40%; background: var(--brand-primary); animation: bootSlide 1s ease-in-out infinite; }
+@keyframes bootSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
+
+/* Drawer + backdrop (mobile) */
+#sidebar-backdrop {
+  position: fixed; inset: 0; z-index: 40;
+  background: rgba(1, 1, 3, 0.6);
+  backdrop-filter: blur(2px);
+  opacity: 0; visibility: hidden;
+  transition: opacity .25s ease, visibility .25s ease;
+}
+#sidebar-backdrop.show { opacity: 1; visibility: visible; }
+@media (min-width: 768px) { #sidebar-backdrop { display: none !important; } }
+
+/* File switch transition */
+.code-fade { animation: codeFade .28s ease; }
+@keyframes codeFade {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Terminal typing cursor */
+.term-cursor { display: inline-block; width: 7px; height: 14px; background: var(--brand-primary); margin-left: 2px; vertical-align: -2px; animation: blink 1.05s steps(2, start) infinite; }
+@keyframes blink { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
+
+/* Active line highlight */
+.code-line { padding: 0 8px; border-left: 2px solid transparent; }
+.code-line.active { background: rgba(63, 185, 80, 0.06); border-left-color: var(--brand-primary); }
+
+/* Custom scrollbars */
+.scroll-thin::-webkit-scrollbar { width: 10px; height: 10px; }
+.scroll-thin::-webkit-scrollbar-track { background: transparent; }
+.scroll-thin::-webkit-scrollbar-thumb { background: var(--brand-border); border-radius: 6px; border: 2px solid var(--brand-background); }
+.scroll-thin::-webkit-scrollbar-thumb:hover { background: var(--brand-muted-foreground); }
+
+/* Tap target boost on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .file-item { min-height: 40px; }
+}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.1/dist/index.global.js"></script>
+  <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+  <style type="text/tailwindcss">
+  @theme inline {
+    --color-background: var(--brand-background);
+    --color-foreground: var(--brand-foreground);
+    --color-card: var(--brand-card);
+    --color-card-foreground: var(--brand-card-foreground);
+    --color-popover: var(--brand-popover);
+    --color-popover-foreground: var(--brand-popover-foreground);
+    --color-primary: var(--brand-primary);
+    --color-primary-foreground: var(--brand-primary-foreground);
+    --color-muted: var(--brand-muted);
+    --color-muted-foreground: var(--brand-muted-foreground);
+    --color-border: var(--brand-border);
+    --color-input: var(--brand-input);
+    --color-ring: var(--brand-ring);
+    --radius-sm: var(--brand-radius-sm);
+    --radius-md: var(--brand-radius-md);
+    --radius-lg: var(--brand-radius-lg);
+  }
+  @layer base {
+    body { background: var(--brand-background); color: var(--brand-foreground); }
+    td, th { @apply break-words; word-break: break-all; word-break: auto-phrase; }
+    th { @apply whitespace-nowrap; }
+  }
+  </style>
+  <style id="semantic-token-fallback">
+      .bg-background { background-color: var(--brand-background); }
+      .text-background { color: var(--brand-background); }
+      .border-background { border-color: var(--brand-background); }
+      .ring-background { --tw-ring-color: var(--brand-background); }
+      .bg-foreground { background-color: var(--brand-foreground); }
+      .text-foreground { color: var(--brand-foreground); }
+      .border-foreground { border-color: var(--brand-foreground); }
+      .ring-foreground { --tw-ring-color: var(--brand-foreground); }
+      .bg-card { background-color: var(--brand-card); }
+      .text-card { color: var(--brand-card); }
+      .border-card { border-color: var(--brand-card); }
+      .ring-card { --tw-ring-color: var(--brand-card); }
+      .bg-card-foreground { background-color: var(--brand-card-foreground); }
+      .text-card-foreground { color: var(--brand-card-foreground); }
+      .border-card-foreground { border-color: var(--brand-card-foreground); }
+      .ring-card-foreground { --tw-ring-color: var(--brand-card-foreground); }
+      .bg-popover { background-color: var(--brand-popover); }
+      .text-popover { color: var(--brand-popover); }
+      .border-popover { border-color: var(--brand-popover); }
+      .ring-popover { --tw-ring-color: var(--brand-popover); }
+      .bg-popover-foreground { background-color: var(--brand-popover-foreground); }
+      .text-popover-foreground { color: var(--brand-popover-foreground); }
+      .border-popover-foreground { border-color: var(--brand-popover-foreground); }
+      .ring-popover-foreground { --tw-ring-color: var(--brand-popover-foreground); }
+      .bg-primary { background-color: var(--brand-primary); }
+      .text-primary { color: var(--brand-primary); }
+      .border-primary { border-color: var(--brand-primary); }
+      .ring-primary { --tw-ring-color: var(--brand-primary); }
+      .bg-primary-foreground { background-color: var(--brand-primary-foreground); }
+      .text-primary-foreground { color: var(--brand-primary-foreground); }
+      .border-primary-foreground { border-color: var(--brand-primary-foreground); }
+      .ring-primary-foreground { --tw-ring-color: var(--brand-primary-foreground); }
+      .bg-muted { background-color: var(--brand-muted); }
+      .text-muted { color: var(--brand-muted); }
+      .border-muted { border-color: var(--brand-muted); }
+      .ring-muted { --tw-ring-color: var(--brand-muted); }
+      .bg-muted-foreground { background-color: var(--brand-muted-foreground); }
+      .text-muted-foreground { color: var(--brand-muted-foreground); }
+      .border-muted-foreground { border-color: var(--brand-muted-foreground); }
+      .ring-muted-foreground { --tw-ring-color: var(--brand-muted-foreground); }
+      .bg-border { background-color: var(--brand-border); }
+      .text-border { color: var(--brand-border); }
+      .border-border { border-color: var(--brand-border); }
+      .ring-border { --tw-ring-color: var(--brand-border); }
+      .bg-input { background-color: var(--brand-input); }
+      .text-input { color: var(--brand-input); }
+      .border-input { border-color: var(--brand-input); }
+      .ring-input { --tw-ring-color: var(--brand-input); }
+      .bg-ring { background-color: var(--brand-ring); }
+      .text-ring { color: var(--brand-ring); }
+      .border-ring { border-color: var(--brand-ring); }
+      .ring-ring { --tw-ring-color: var(--brand-ring); }
+  </style>
+  <style>
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    [data-icon] {
+      display: inline-flex; align-items: center; justify-content: center;
+      -webkit-mask-size: contain; mask-size: contain;
+      -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+      -webkit-mask-position: center; mask-position: center;
+      background-color: currentColor;
+    }
+    /* Sidebar drawer transform on mobile */
+    #sidebar {
+      transition: transform .28s cubic-bezier(.4,0,.2,1);
+    }
+    @media (max-width: 767px) {
+      #sidebar {
+        position: fixed; top: 40px; bottom: 24px; left: 0; z-index: 50;
+        width: var(--sidebar-w);
+        box-shadow: var(--shadow-drawer);
+        transform: translateX(-100%);
+      }
+      #sidebar.open { transform: translateX(0); }
+    }
+    /* Hide terminal body when collapsed on mobile */
+    #terminal-body { transition: max-height .3s ease, opacity .25s ease, padding .3s ease; }
+    @media (max-width: 767px) {
+      #terminal-body.collapsed { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; overflow: hidden; }
+      #terminal-body { max-height: 320px; opacity: 1; }
+    }
+  </style>
+</head>
+<body class="font-sans antialiased">
+
+  <!-- Boot overlay -->
+  <div id="boot-overlay" aria-hidden="true">
+    <div class="boot-logo">&gt;_</div>
+    <div class="boot-text">INITIALIZING WORKSPACE</div>
+    <div class="boot-bar"></div>
+  </div>
+
+  <main class="h-full bg-background text-foreground font-mono flex flex-col overflow-hidden">
+    <!-- Title bar -->
+    <header class="h-10 bg-card border-b border-border flex items-center shrink-0 select-none">
+      <!-- Mobile menu button -->
+      <button id="menu-toggle" class="md:hidden h-full w-10 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="切换文件列表">
+        <i data-lucide="menu" class="w-4 h-4"></i>
+      </button>
+      <div class="flex items-center gap-2 px-2 md:px-4">
+        <span class="w-3 h-3 rounded-full" style="background-color: var(--state-error);"></span>
+        <span class="w-3 h-3 rounded-full" style="background-color: var(--state-warning);"></span>
+        <span class="w-3 h-3 rounded-full" style="background-color: var(--state-success);"></span>
+      </div>
+      <div class="flex-1 flex items-center h-full min-w-0">
+        <div class="h-full px-3 md:px-4 bg-muted border-r border-border flex items-center gap-2 text-sm text-foreground max-w-full">
+          <i data-lucide="file-code" class="w-4 h-4 text-muted-foreground shrink-0" id="title-icon"></i>
+          <span id="title-name" class="truncate">about.me</span>
+        </div>
+      </div>
+      <div class="px-3 md:px-4 text-xs text-muted-foreground hidden sm:flex items-center gap-2 shrink-0">
+        <i data-lucide="circle-dot" class="w-3 h-3 text-primary"></i>
+        <span>portfolio — about_me</span>
+      </div>
+    </header>
+
+    <!-- Middle workspace -->
+    <div class="flex-1 flex min-h-0 relative overflow-hidden">
+      <!-- Sidebar backdrop (mobile) -->
+      <div id="sidebar-backdrop"></div>
+
+      <!-- Sidebar explorer -->
+      <aside id="sidebar" class="w-full md:w-60 bg-background border-r border-border flex flex-col shrink-0">
+        <div class="px-4 py-2 text-xs text-muted-foreground uppercase tracking-wider font-sans flex items-center justify-between">
+          <span>EXPLORER</span>
+          <button id="sidebar-close" class="md:hidden text-muted-foreground hover:text-foreground" aria-label="关闭侧栏">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <nav class="flex-1 overflow-y-auto pb-4 scroll-thin">
+          <div class="px-2 py-1 flex items-center gap-2 text-sm text-foreground">
+            <i data-lucide="chevron-down" class="w-3 h-3 text-muted-foreground"></i>
+            <span class="font-medium">portfolio</span>
+          </div>
+          <ul class="text-sm" id="file-list">
+            <li data-file="about" class="file-item pl-8 pr-3 py-1.5 flex items-center gap-2 cursor-pointer bg-muted border-l-2 border-primary text-foreground">
+              <i data-lucide="file-code" class="w-4 h-4 shrink-0" style="color: var(--state-info);"></i>
+              <span>about.me</span>
+            </li>
+            <li data-file="skills" class="file-item pl-8 pr-3 py-1.5 flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-foreground hover:bg-muted border-l-2 border-transparent">
+              <i data-lucide="file-json" class="w-4 h-4 shrink-0" style="color: var(--code-number);"></i>
+              <span>skills.json</span>
+            </li>
+            <li data-file="projects" class="file-item pl-8 pr-3 py-1.5 flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-foreground hover:bg-muted border-l-2 border-transparent">
+              <i data-lucide="file-code" class="w-4 h-4 shrink-0" style="color: var(--code-function);"></i>
+              <span>projects.js</span>
+            </li>
+            <li data-file="contact" class="file-item pl-8 pr-3 py-1.5 flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-foreground hover:bg-muted border-l-2 border-transparent">
+              <i data-lucide="file-text" class="w-4 h-4 shrink-0" style="color: var(--state-info);"></i>
+              <span>contact.md</span>
+            </li>
+          </ul>
+          <div class="px-4 mt-6 text-xs text-muted-foreground font-sans">
+            <div class="flex items-center gap-1.5 mb-1"><i data-lucide="info" class="w-3 h-3"></i><span>OUTLINE</span></div>
+            <div class="pl-1 leading-5" id="outline-hint">const profile = { ... }</div>
+          </div>
+          <div class="px-4 mt-6 text-xs text-muted-foreground font-sans">
+            <div class="flex items-center gap-1.5 mb-2"><i data-lucide="keyboard" class="w-3 h-3"></i><span>SHORTCUTS</span></div>
+            <div class="pl-1 leading-6 space-y-0.5">
+              <div class="flex items-center justify-between"><span>切换文件</span><kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[10px]">1-4</kbd></div>
+              <div class="flex items-center justify-between"><span>终端</span><kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[10px]">T</kbd></div>
+            </div>
+          </div>
+        </nav>
+      </aside>
+
+      <!-- Editor area -->
+      <section class="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+        <!-- Breadcrumb / tab bar -->
+        <div class="h-8 bg-card border-b border-border flex items-center px-3 md:px-4 text-xs text-muted-foreground gap-1 shrink-0">
+          <span>portfolio</span>
+          <i data-lucide="chevron-right" class="w-3 h-3"></i>
+          <span class="text-foreground truncate" id="breadcrumb-name">about.me</span>
+        </div>
+
+        <!-- Code editor -->
+        <div class="flex-1 overflow-auto flex min-h-0 scroll-thin" id="editor-scroll">
+          <!-- Line numbers -->
+          <div class="w-12 sm:w-14 shrink-0 bg-background border-r border-border text-right text-muted-foreground text-sm leading-6 select-none py-4 pr-2" id="line-numbers"></div>
+
+          <!-- Code content -->
+          <div class="flex-1 min-w-0 p-4 text-sm leading-6 whitespace-pre" id="code-content"></div>
+        </div>
+
+        <!-- Terminal panel -->
+        <div class="bg-card border-t border-border shrink-0">
+          <!-- Terminal header (clickable on mobile) -->
+          <button id="terminal-toggle" class="w-full flex items-center gap-2 px-4 py-2 text-sm font-mono text-left" aria-label="折叠/展开终端">
+            <i data-lucide="terminal" class="w-3 h-3 text-primary"></i>
+            <span class="text-primary">~ $</span>
+            <span class="text-foreground">npx start life --mode=adventure</span>
+            <i data-lucide="chevron-down" class="w-3 h-3 ml-auto text-muted-foreground md:hidden transition-transform" id="terminal-chev"></i>
+          </button>
+          <!-- Terminal body -->
+          <div id="terminal-body" class="px-4 pb-4 text-sm font-mono">
+            <div class="space-y-1 text-muted-foreground" id="terminal-log">
+              <div>&gt; Booting workspace... <span style="color: var(--state-success);">OK</span></div>
+              <div>&gt; Profile ready · Skills: <span style="color: var(--code-number);">2</span> · Projects: <span style="color: var(--code-number);">3</span></div>
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-foreground">
+                <a href="mailto:Tom_123_cmd@outlook.com" class="flex items-center gap-1 hover:text-primary transition-colors">
+                  <i data-lucide="mail" class="w-3 h-3"></i> Tom_123_cmd@outlook.com
+                </a>
+                <a href="https://github.com/Tom123-cmd" target="_blank" rel="noopener" class="flex items-center gap-1 hover:text-primary transition-colors">
+                  <svg class="w-3 h-3" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg> github.com/Tom123-cmd
+                </a>
+              </div>
+              <div class="flex items-center mt-1 text-foreground">
+                <span class="text-primary">~ $</span><span class="term-cursor"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Status bar -->
+    <footer class="h-6 bg-primary text-primary-foreground flex items-center justify-between px-2 md:px-3 text-xs shrink-0">
+      <div class="flex items-center gap-3 md:gap-4 min-w-0">
+        <span class="flex items-center gap-1"><i data-lucide="git-branch" class="w-3 h-3"></i> main</span>
+        <span class="hidden sm:flex items-center gap-1"><i data-lucide="circle-check" class="w-3 h-3"></i> 0</span>
+        <span class="hidden sm:flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3 h-3"></i> 0</span>
+      </div>
+      <div class="flex items-center gap-2 md:gap-4 shrink-0">
+        <span id="status-lang">JavaScript</span>
+        <span class="hidden sm:inline">UTF-8</span>
+        <span id="status-pos">Ln 1, Col 1</span>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    // File content registry — each entry holds highlighted HTML, icon, language label, and an outline hint.
+    const FILES = {
+      about: {
+        name: "about.me",
+        icon: "file-code",
+        lang: "JavaScript",
+        outline: "const profile = { ... }",
+        html: `<span style="color: var(--code-comment)">// Welcome to my digital workspace</span>
+<span style="color: var(--code-comment)">// 欢迎来到我的数字工作区</span>
+
+<span style="color: var(--code-keyword)">const</span> <span style="color: var(--code-function)">profile</span> <span style="color: var(--code-keyword)">=</span> {
+  <span style="color: var(--code-tag)">name</span>: <span style="color: var(--code-string)">"Tom"</span>,
+  <span style="color: var(--code-tag)">role</span>: <span style="color: var(--code-string)">"student"</span>,
+  <span style="color: var(--code-tag)">location</span>: <span style="color: var(--code-string)">"China"</span>,
+  <span style="color: var(--code-tag)">email</span>: <span style="color: var(--code-string)">"Tom_123_cmd@outlook.com"</span>
+};
+
+<span style="color: var(--code-comment)">// 其余内容已拆分到其他文件，点击左侧切换查看 →</span>`
+      },
+      skills: {
+        name: "skills.json",
+        icon: "file-json",
+        lang: "JSON",
+        outline: "skills[] · count",
+        html: `{
+  <span style="color: var(--code-tag)">"skills"</span>: [
+    <span style="color: var(--code-string)">"Scratch"</span>,
+    <span style="color: var(--code-string)">"C++"</span>
+  ],
+  <span style="color: var(--code-tag)">"count"</span>: <span style="color: var(--code-number)">2</span>
+}`
+      },
+      projects: {
+        name: "projects.js",
+        icon: "file-code",
+        lang: "JavaScript",
+        outline: "projects[3] · export default",
+        html: `<span style="color: var(--code-keyword)">const</span> <span style="color: var(--code-function)">projects</span> <span style="color: var(--code-keyword)">=</span> [
+  {
+    <span style="color: var(--code-tag)">name</span>: <span style="color: var(--code-string)">"esp32car"</span>,
+    <span style="color: var(--code-tag)">desc</span>: <span style="color: var(--code-string)">"基于esp32使用TCP控制的四驱小车"</span>,
+    <span style="color: var(--code-tag)">stack</span>: [<span style="color: var(--code-string)">"Arduino C"</span>, <span style="color: var(--code-string)">"C++"</span>]
+  },
+  {
+    <span style="color: var(--code-tag)">name</span>: <span style="color: var(--code-string)">"Desktop Assistant v2"</span>,
+    <span style="color: var(--code-tag)">desc</span>: <span style="color: var(--code-string)">"一个自带各种工具和游戏的桌面摆件"</span>,
+    <span style="color: var(--code-tag)">stack</span>: [<span style="color: var(--code-string)">"Arduino C"</span>, <span style="color: var(--code-string)">"C++"</span>]
+  },
+  {
+    <span style="color: var(--code-tag)">name</span>: <span style="color: var(--code-string)">"Interactive Portfolio"</span>,
+    <span style="color: var(--code-tag)">desc</span>: <span style="color: var(--code-string)">"代码编辑器风格的个人网站"</span>,
+    <span style="color: var(--code-tag)">stack</span>: [<span style="color: var(--code-string)">"HTML"</span>, <span style="color: var(--code-string)">"Tailwind CSS"</span>, <span style="color: var(--code-string)">"Lucide"</span>]
+  }
+];
+
+<span style="color: var(--code-keyword)">export default</span> projects;`
+      },
+      contact: {
+        name: "contact.md",
+        icon: "file-text",
+        lang: "Markdown",
+        outline: "# Contact · links",
+        html: `<span style="color: var(--code-keyword)"># Contact</span>
+
+<span style="color: var(--code-tag)">-</span> <span style="color: var(--code-string)">**Email**</span>: Tom_123_cmd@outlook.com
+<span style="color: var(--code-tag)">-</span> <span style="color: var(--code-string)">**GitHub**</span>: https://github.com/Tom123-cmd
+
+<span style="color: var(--code-comment)">&gt; Feel free to reach out for collaboration or a chat.</span>`
+      }
+    };
+
+    const FILE_KEYS = ["about", "skills", "projects", "contact"];
+    const ACTIVE = "file-item pl-8 pr-3 py-1.5 flex items-center gap-2 cursor-pointer bg-muted border-l-2 border-primary text-foreground";
+    const INACTIVE = "file-item pl-8 pr-3 py-1.5 flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-foreground hover:bg-muted border-l-2 border-transparent";
+
+    const sidebar = document.getElementById("sidebar");
+    const backdrop = document.getElementById("sidebar-backdrop");
+    const codeContent = document.getElementById("code-content");
+    const lineNumbers = document.getElementById("line-numbers");
+
+    function openSidebar() {
+      sidebar.classList.add("open");
+      backdrop.classList.add("show");
+    }
+    function closeSidebar() {
+      sidebar.classList.remove("open");
+      backdrop.classList.remove("show");
+    }
+
+    function renderFile(key) {
+      const file = FILES[key];
+      if (!file) return;
+
+      // Sidebar active states
+      document.querySelectorAll(".file-item").forEach((li) => {
+        const isActive = li.dataset.file === key;
+        li.className = "file-item pl-8 pr-3 py-1.5 flex items-center gap-2 cursor-pointer " + (isActive ? ACTIVE : INACTIVE);
+      });
+
+      // Title tab
+      document.getElementById("title-name").textContent = file.name;
+      const titleIcon = document.getElementById("title-icon");
+      titleIcon.setAttribute("data-lucide", file.icon);
+
+      // Breadcrumb
+      document.getElementById("breadcrumb-name").textContent = file.name;
+
+      // Code content — split lines into highlightable rows
+      const lines = file.html.split("\n");
+      codeContent.innerHTML = lines.map((ln, i) =>
+        `<div class="code-line ${i === 0 ? "active" : ""}">${ln || "&nbsp;"}</div>`
+      ).join("");
+      codeContent.classList.remove("code-fade");
+      // force reflow to restart animation
+      void codeContent.offsetWidth;
+      codeContent.classList.add("code-fade");
+
+      // Line numbers
+      lineNumbers.innerHTML = lines.map((_, i) => `<div>${i + 1}</div>`).join("");
+
+      // Outline hint
+      document.getElementById("outline-hint").textContent = file.outline;
+
+      // Status bar
+      document.getElementById("status-lang").textContent = file.lang;
+      document.getElementById("status-pos").textContent = "Ln " + lines.length + ", Col 1";
+
+      // Reset editor scroll to top
+      const editorScroll = document.getElementById("editor-scroll");
+      if (editorScroll) editorScroll.scrollTop = 0;
+
+      // Re-render lucide icons (title icon swap)
+      if (window.lucide) lucide.createIcons();
+
+      // Auto-close drawer on mobile after pick
+      if (window.matchMedia("(max-width: 767px)").matches) closeSidebar();
+    }
+
+    // Wire up click handlers
+    document.querySelectorAll(".file-item").forEach((li) => {
+      li.addEventListener("click", () => renderFile(li.dataset.file));
+    });
+
+    // Mobile sidebar toggle
+    document.getElementById("menu-toggle").addEventListener("click", openSidebar);
+    document.getElementById("sidebar-close").addEventListener("click", closeSidebar);
+    backdrop.addEventListener("click", closeSidebar);
+
+    // Terminal collapse on mobile
+    const termBody = document.getElementById("terminal-body");
+    const termChev = document.getElementById("terminal-chev");
+    document.getElementById("terminal-toggle").addEventListener("click", () => {
+      if (!window.matchMedia("(max-width: 767px)").matches) return;
+      termBody.classList.toggle("collapsed");
+      termChev.style.transform = termBody.classList.contains("collapsed") ? "rotate(-90deg)" : "rotate(0deg)";
+    });
+
+    // Keyboard shortcuts: 1-4 switch files, T toggles terminal
+    document.addEventListener("keydown", (e) => {
+      if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+      if (e.key >= "1" && e.key <= "4") {
+        renderFile(FILE_KEYS[parseInt(e.key, 10) - 1]);
+      } else if (e.key.toLowerCase() === "t") {
+        if (window.matchMedia("(max-width: 767px)").matches) {
+          document.getElementById("terminal-toggle").click();
+        }
+      } else if (e.key === "Escape") {
+        closeSidebar();
+      }
+    });
+
+    // Initial render
+    renderFile("about");
+    if (window.lucide) lucide.createIcons();
+
+    // Hide boot overlay after a short sequence
+    window.addEventListener("load", () => {
+      setTimeout(() => {
+        document.getElementById("boot-overlay").classList.add("hide");
+      }, 700);
+    });
+  </script>
 </body>
 </html>
