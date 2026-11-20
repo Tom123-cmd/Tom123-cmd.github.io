@@ -269,7 +269,7 @@ body { position: fixed; inset: 0; }
     <!-- Title bar -->
     <header class="h-10 bg-card border-b border-border flex items-center shrink-0 select-none">
       <!-- Mobile menu button -->
-      <button id="menu-toggle" class="md:hidden h-full w-10 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="切换文件列表">
+      <button id="menu-toggle" class="md:hidden h-full w-10 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="Switch file">
         <i data-lucide="menu" class="w-4 h-4"></i>
       </button>
       <div class="flex items-center gap-2 px-2 md:px-4">
@@ -332,8 +332,8 @@ body { position: fixed; inset: 0; }
           <div class="px-4 mt-6 text-xs text-muted-foreground font-sans">
             <div class="flex items-center gap-1.5 mb-2"><i data-lucide="keyboard" class="w-3 h-3"></i><span>SHORTCUTS</span></div>
             <div class="pl-1 leading-6 space-y-0.5">
-              <div class="flex items-center justify-between"><span>切换文件</span><kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[10px]">1-4</kbd></div>
-              <div class="flex items-center justify-between"><span>终端</span><kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[10px]">T</kbd></div>
+              <div class="flex items-center justify-between"><span>Switch file</span><kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[10px]">1-4</kbd></div>
+              <div class="flex items-center justify-between"><span>Terminal</span><kbd class="px-1.5 py-0.5 bg-muted border border-border rounded text-[10px]">T</kbd></div>
             </div>
           </div>
         </nav>
@@ -360,7 +360,7 @@ body { position: fixed; inset: 0; }
         <!-- Terminal panel -->
         <div class="bg-card border-t border-border shrink-0">
           <!-- Terminal header (clickable on mobile) -->
-          <button id="terminal-toggle" class="w-full flex items-center gap-2 px-4 py-2 text-sm font-mono text-left" aria-label="折叠/展开终端">
+          <button id="terminal-toggle" class="w-full flex items-center gap-2 px-4 py-2 text-sm font-mono text-left" aria-label="Collapse/expand terminal">
             <i data-lucide="terminal" class="w-3 h-3 text-primary"></i>
             <span class="text-primary">~ $</span>
             <span class="text-foreground">npx start life --mode=adventure</span>
